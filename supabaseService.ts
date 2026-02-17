@@ -2,10 +2,25 @@
 import { createClient } from '@supabase/supabase-js';
 import { Character, Chat } from './types';
 
-const supabaseUrl = 'https://uxdkvoqdpogakvzgzhii.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZGt2b3FkcG9nYWt2emd6aGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjM1NzksImV4cCI6MjA4NjgzOTU3OX0.die0uI-fCKL-DqoPvxA-pb8VT1XkWRYkm7daztrVyvk';
+// Safely access process.env for browser environments
+const getEnv = (key: string) => {
+  try {
+    return (process && process.env && process.env[key]) || "";
+  } catch (e) {
+    return "";
+  }
+};
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = getEnv('SUPABASE_URL');
+const supabaseKey = getEnv('SUPABASE_ANON_KEY');
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn("Supabase credentials missing or process.env unavailable. Cloud sync will be disabled.");
+}
+
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey) 
+  : null as any;
 
 let initializationError: string | null = null;
 
@@ -13,6 +28,7 @@ export const isSupabaseEnabled = () => !!supabase && initializationError === nul
 export const getSupabaseError = () => initializationError;
 
 export const testSupabaseConnection = async () => {
+  if (!supabase) return false;
   try {
     const { data, error } = await supabase.from('characters').select('id').limit(1);
     if (error) {
@@ -32,6 +48,7 @@ export const testSupabaseConnection = async () => {
 };
 
 export const syncCharacterToCloud = async (character: Character) => {
+  if (!supabase) return;
   try {
     const { error } = await supabase
       .from('characters')
@@ -45,8 +62,8 @@ export const syncCharacterToCloud = async (character: Character) => {
 };
 
 export const deleteCharacterFromCloud = async (characterId: string) => {
+  if (!supabase) return;
   try {
-    // Delete associated chats first (if not handled by cascade)
     const { error: chatError } = await supabase
       .from('chats')
       .delete()
@@ -67,6 +84,7 @@ export const deleteCharacterFromCloud = async (characterId: string) => {
 };
 
 export const syncChatToCloud = async (chat: Chat) => {
+  if (!supabase) return;
   try {
     if (!chat.id || chat.messages.length === 0) return;
     const { error } = await supabase
@@ -82,6 +100,7 @@ export const syncChatToCloud = async (chat: Chat) => {
 };
 
 export const fetchAllCharactersFromCloud = async (): Promise<Character[]> => {
+  if (!supabase) return [];
   try {
     const { data, error } = await supabase.from('characters').select('*');
     if (error) throw error;
@@ -93,6 +112,7 @@ export const fetchAllCharactersFromCloud = async (): Promise<Character[]> => {
 };
 
 export const fetchAllChatsFromCloud = async (): Promise<Chat[]> => {
+  if (!supabase) return [];
   try {
     const { data, error } = await supabase.from('chats').select('*');
     if (error) throw error;

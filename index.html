@@ -14,6 +14,8 @@
             font-family: 'Inter', sans-serif;
             background-color: #0c0c0e;
             color: #d1d1d6;
+            margin: 0;
+            padding: 0;
         }
         .rp-log {
             font-family: 'Inter', serif;
@@ -69,13 +71,26 @@
     "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react-dom": "https://esm.sh/react-dom@^19.2.4",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.48.1",
     "firebase/": "https://esm.sh/firebase@^12.9.0/"
   }
 }
 </script>
+<script>
+    // Polyfill for process.env to prevent ReferenceError in browser ESM environments
+    window.process = window.process || { env: {} };
+    // These will be overridden by the platform if available, or manually set here
+    window.process.env = {
+        ...window.process.env,
+        API_KEY: window.process.env.API_KEY || "", 
+        SUPABASE_URL: window.process.env.SUPABASE_URL || "https://uxdkvoqdpogakvzgzhii.supabase.co",
+        SUPABASE_ANON_KEY: window.process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZGt2b3FkcG9nYWt2emd6aGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjM1NzksImV4cCI6MjA4NjgzOTU3OX0.die0uI-fCKL-DqoPvxA-pb8VT1XkWRYkm7daztrVyvk"
+    };
+</script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

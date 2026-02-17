@@ -1,14 +1,19 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { Character, Message, Chat } from "./types";
+import { GoogleGenAI } from "@google/genai";
+import { Character, Chat } from "./types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Lazy-init the AI client to handle potential process.env timing issues
+const getAIClient = () => {
+  const apiKey = (process.env && process.env.API_KEY) || "";
+  return new GoogleGenAI({ apiKey });
+};
 
 export const generateRoleplayResponse = async (
   character: Character,
   chat: Chat,
   onChunk: (chunk: string) => void
 ) => {
+  const ai = getAIClient();
   const systemInstruction = `
 You are a world-class roleplay AI engine. 
 Current Bot Character: ${character.name}
@@ -64,6 +69,7 @@ RULES:
 };
 
 export const brainstormField = async (fieldName: string, currentContext: string) => {
+  const ai = getAIClient();
   const prompt = `Brainstorm a creative and immersive ${fieldName} for a roleplay character/scenario. 
   Current context: ${currentContext || "None"}. 
   Provide only the description text, no labels.`;
