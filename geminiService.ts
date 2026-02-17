@@ -2,17 +2,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { Character, Chat } from "./types";
 
-const getAIClient = () => {
-  const apiKey = (process.env && process.env.API_KEY) || "";
-  return new GoogleGenAI({ apiKey });
-};
-
 export const generateRoleplayResponse = async (
   character: Character,
   chat: Chat,
   onChunk: (chunk: string) => void
 ) => {
-  const ai = getAIClient();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const systemInstruction = `
 You are an immersive roleplay engine for a site like Perchance. 
@@ -47,7 +42,7 @@ CORE RULES:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: chatHistory,
       config: {
         systemInstruction,
@@ -66,14 +61,14 @@ CORE RULES:
 };
 
 export const brainstormField = async (fieldName: string, currentContext: string) => {
-  const ai = getAIClient();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const fieldLabel = fieldName === 'description' ? 'Bot Character' : (fieldName === 'userDescription' ? 'User Character' : 'Roleplay Scenario');
   const prompt = `Brainstorm a creative and immersive ${fieldLabel} description. 
   Current context: ${currentContext || "None"}. 
   Return only the description text.`;
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3-pro-preview',
     contents: prompt
   });
   return response.text?.trim() || "";
