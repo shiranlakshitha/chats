@@ -12,57 +12,73 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0c0c0e;
-            color: #d1d1d6;
+            background-color: #000000;
+            color: #bbbbbb;
             margin: 0;
             padding: 0;
         }
-        .rp-log {
-            font-family: 'Inter', serif;
-            line-height: 1.6;
-        }
-        .perchance-input {
-            background-color: #161618;
-            border: 1px solid #2d2d30;
-            color: #efeff1;
-            transition: all 0.2s;
-        }
-        .perchance-input:focus {
-            border-color: #4f46e5;
-            outline: none;
-            background-color: #1c1c1f;
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0c0c0e;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2d2d30;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3f3f46;
+        .perchance-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
         }
         .divider {
             display: flex;
             align-items: center;
             text-align: center;
-            color: #636366;
-            font-size: 0.75rem;
+            color: #666;
+            font-size: 0.8rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin: 1.5rem 0;
+            margin: 1.5rem 0 0.5rem 0;
         }
         .divider::before, .divider::after {
             content: '';
             flex: 1;
-            border-bottom: 1px solid #2d2d30;
+            border-bottom: 1px solid #333;
         }
         .divider:not(:empty)::before { margin-right: 1rem; }
         .divider:not(:empty)::after { margin-left: 1rem; }
+        
+        .pc-input {
+            background-color: #111111;
+            border: 1px solid #333;
+            color: #ddd;
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 13px;
+            border-radius: 2px;
+        }
+        .pc-input:focus {
+            outline: none;
+            border-color: #444;
+        }
+        .pc-btn {
+            background-color: #222;
+            border: 1px solid #333;
+            color: #aaa;
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        .pc-btn:hover {
+            background-color: #333;
+            color: #fff;
+        }
+        .pc-btn-primary {
+            background-color: #3b82f622;
+            border-color: #3b82f644;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+        .pc-btn-primary:hover {
+            background-color: #3b82f644;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #222; }
     </style>
 <script type="importmap">
 {
@@ -78,9 +94,7 @@
 }
 </script>
 <script>
-    // Polyfill for process.env to prevent ReferenceError in browser ESM environments
     window.process = window.process || { env: {} };
-    // These will be overridden by the platform if available, or manually set here
     window.process.env = {
         ...window.process.env,
         API_KEY: window.process.env.API_KEY || "", 

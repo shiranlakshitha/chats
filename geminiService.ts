@@ -2,7 +2,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Character, Chat } from "./types";
 
-// Lazy-init the AI client to handle potential process.env timing issues
 const getAIClient = () => {
   const apiKey = (process.env && process.env.API_KEY) || "";
   return new GoogleGenAI({ apiKey });
@@ -14,37 +13,40 @@ export const generateRoleplayResponse = async (
   onChunk: (chunk: string) => void
 ) => {
   const ai = getAIClient();
+  
   const systemInstruction = `
-You are a world-class roleplay AI engine. 
-Current Bot Character: ${character.name}
-Bot Description: ${character.description}
-Bot Personality/Style: ${character.personality} ${character.speakingStyle}
+You are an immersive roleplay engine for a site like Perchance. 
 
-User Persona: ${character.userNickname}
+CHARACTER CONTEXT:
+Bot: ${character.name}
+Bot Description: ${character.description}
+User: ${character.userNickname}
 User Description: ${character.userDescription}
 
-Scenario & Lore: ${character.scenarioPrompt}
+SCENARIO & LORE:
+${character.scenarioPrompt}
 
-WRITING INSTRUCTIONS:
+WRITING STYLE INSTRUCTIONS:
 ${chat.writingInstructions || "Stay in character. Be descriptive. Use *asterisks* for actions."}
-${chat.longResponses ? "Provide long, detailed, and multi-paragraph responses." : "Keep responses concise and snappy."}
+${chat.longResponses ? "Provide very long, detailed, and multi-paragraph responses." : "Keep responses focused and concise."}
 
-Goal: ${chat.nextEventPrompt || "Continue the story naturally based on the recent logs."}
+GOAL FOR NEXT MESSAGE:
+${chat.nextEventPrompt || "Continue the story naturally."}
 
-RULES:
-1. Stay fully in character. Never mention being an AI.
-2. If roleplaying as ${character.name}, speak in their unique voice.
-3. Integrate narration and dialogue seamlessly.
-4. Do not summarize; show, don't just tell.
+CORE RULES:
+1. Never speak as the User.
+2. Always stay in character as ${character.name}.
+3. The Chat Log provided in the conversation is the full history. 
+4. Do not include character names in the response unless starting a new line in a script format.
 `;
 
   const chatHistory = chat.messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
-    parts: [{ text: `${m.authorName ? `[${m.authorName}]: ` : ""}${m.content}` }]
+    parts: [{ text: `${m.authorName ? `${m.authorName}: ` : ""}${m.content}` }]
   }));
 
   try {
-    const streamResponse = await ai.models.generateContentStream({
+    const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: chatHistory,
       config: {
@@ -53,15 +55,10 @@ RULES:
       }
     });
 
-    let fullText = "";
-    for await (const chunk of streamResponse) {
-      const text = chunk.text;
-      if (text) {
-        fullText += text;
-        onChunk(fullText);
-      }
-    }
-    return fullText;
+    const text = response.text || "";
+    // Clean bot name from beginning if model added it
+    const cleaned = text.replace(new RegExp(`^${character.name}: `, 'i'), '');
+    return cleaned.trim();
   } catch (error) {
     console.error("Gemini Error:", error);
     throw error;
@@ -70,13 +67,14 @@ RULES:
 
 export const brainstormField = async (fieldName: string, currentContext: string) => {
   const ai = getAIClient();
-  const prompt = `Brainstorm a creative and immersive ${fieldName} for a roleplay character/scenario. 
+  const fieldLabel = fieldName === 'description' ? 'Bot Character' : (fieldName === 'userDescription' ? 'User Character' : 'Roleplay Scenario');
+  const prompt = `Brainstorm a creative and immersive ${fieldLabel} description. 
   Current context: ${currentContext || "None"}. 
-  Provide only the description text, no labels.`;
+  Return only the description text.`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt
   });
-  return response.text;
+  return response.text?.trim() || "";
 };
