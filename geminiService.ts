@@ -7,7 +7,6 @@ export const generateRoleplayResponse = async (
   chat: Chat,
   onChunk: (chunk: string) => void
 ) => {
-  // Always initialize with process.env.API_KEY directly
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const systemInstruction = `
@@ -32,11 +31,20 @@ CORE RULES:
 - Stay strictly in character as ${character.name}.
 `;
 
-  // Convert messages to Gemini format
-  const chatHistory = chat.messages.map(m => ({
+  // Convert messages to Gemini format (roles: 'user' or 'model')
+  let chatHistory = chat.messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
     parts: [{ text: `${m.authorName ? `${m.authorName}: ` : ""}${m.content}` }]
   }));
+
+  // Fix: Gemini requires at least one message in 'contents'.
+  // If history is empty (first message), we prime it with the scenario.
+  if (chatHistory.length === 0) {
+    chatHistory = [{
+      role: 'user',
+      parts: [{ text: `[Scenario Start] ${character.scenarioPrompt}` }]
+    }];
+  }
 
   try {
     const response = await ai.models.generateContent({
@@ -50,7 +58,7 @@ CORE RULES:
     });
 
     const text = response.text || "";
-    // Remove potential name prefixing by the model
+    // Remove potential name prefixing by the model to keep the log clean
     return text.replace(new RegExp(`^${character.name}: `, 'i'), '').trim();
   } catch (error) {
     console.error("Gemini API Error:", error);
@@ -60,13 +68,20 @@ CORE RULES:
 
 export const brainstormField = async (fieldName: string, currentContext: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const prompt = `Brainstorm a creative and immersive description for a character/scenario field named "${fieldName}". 
-  Context: ${currentContext || "Start from scratch"}. 
-  Return only the generated description text.`;
+  const fieldLabel = fieldName === 'description' ? 'Bot Character' : (fieldName === 'userDescription' ? 'User Character' : 'Roleplay Scenario');
   
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: prompt
-  });
-  return response.text?.trim() || "";
+  const promptText = `Brainstorm a creative and immersive description for the "${fieldLabel}" field. 
+  Current Context: ${currentContext || "None - create something original and evocative"}. 
+  Return ONLY the generated text, no commentary.`;
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: [{ role: 'user', parts: [{ text: promptText }] }]
+    });
+    return response.text?.trim() || "";
+  } catch (error) {
+    console.error("Brainstorming Error:", error);
+    return "";
+  }
 };
