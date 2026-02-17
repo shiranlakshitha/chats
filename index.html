@@ -94,13 +94,9 @@
 }
 </script>
 <script>
+    // Ensure process.env is defined for the browser and uses variables set by the user
     window.process = window.process || { env: {} };
-    window.process.env = {
-        ...window.process.env,
-        API_KEY: window.process.env.API_KEY || "", 
-        SUPABASE_URL: window.process.env.SUPABASE_URL || "https://uxdkvoqdpogakvzgzhii.supabase.co",
-        SUPABASE_ANON_KEY: window.process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZGt2b3FkcG9nYWt2emd6aGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjM1NzksImV4cCI6MjA4NjgzOTU3OX0.die0uI-fCKL-DqoPvxA-pb8VT1XkWRYkm7daztrVyvk"
-    };
+    // The variables from the UI are already injected into process.env by the platform.
 </script>
 </head>
 <body>

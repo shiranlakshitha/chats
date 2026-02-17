@@ -2,27 +2,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { Character, Chat } from './types';
 
-// Safely access process.env for browser environments
-const getEnv = (key: string) => {
-  try {
-    return (process && process.env && process.env[key]) || "";
-  } catch (e) {
-    return "";
-  }
-};
-
-const supabaseUrl = getEnv('SUPABASE_URL');
-const supabaseKey = getEnv('SUPABASE_ANON_KEY');
-
-if (!supabaseUrl || !supabaseKey) {
-  console.warn("Supabase credentials missing or process.env unavailable. Cloud sync will be disabled.");
-}
+// Accessing process.env which is injected by the platform
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
 export const supabase = (supabaseUrl && supabaseKey) 
   ? createClient(supabaseUrl, supabaseKey) 
   : null as any;
 
-let initializationError: string | null = null;
+let initializationError: string | null = (supabaseUrl && supabaseKey) ? null : "Credentials missing";
 
 export const isSupabaseEnabled = () => !!supabase && initializationError === null;
 export const getSupabaseError = () => initializationError;
@@ -54,30 +42,16 @@ export const syncCharacterToCloud = async (character: Character) => {
       .from('characters')
       .upsert(character, { onConflict: 'id' });
     if (error) throw error;
-    console.log(`Cloud Sync (Char): ${character.name}`);
   } catch (e: any) {
     console.error("Supabase Sync Error (Char):", e);
-    initializationError = e.message;
   }
 };
 
 export const deleteCharacterFromCloud = async (characterId: string) => {
   if (!supabase) return;
   try {
-    const { error: chatError } = await supabase
-      .from('chats')
-      .delete()
-      .eq('characterId', characterId);
-    
-    if (chatError) throw chatError;
-
-    const { error } = await supabase
-      .from('characters')
-      .delete()
-      .eq('id', characterId);
-    
-    if (error) throw error;
-    console.log(`Cloud Delete: ${characterId}`);
+    await supabase.from('chats').delete().eq('characterId', characterId);
+    await supabase.from('characters').delete().eq('id', characterId);
   } catch (e: any) {
     console.error("Supabase Delete Error:", e);
   }
@@ -86,15 +60,13 @@ export const deleteCharacterFromCloud = async (characterId: string) => {
 export const syncChatToCloud = async (chat: Chat) => {
   if (!supabase) return;
   try {
-    if (!chat.id || chat.messages.length === 0) return;
+    if (!chat.id) return;
     const { error } = await supabase
       .from('chats')
       .upsert(chat, { onConflict: 'id' });
     if (error) throw error;
-    console.log(`Cloud Sync (Chat): ${chat.id}`);
   } catch (e: any) {
     console.error("Supabase Sync Error (Chat):", e);
-    initializationError = e.message;
     throw e;
   }
 };
