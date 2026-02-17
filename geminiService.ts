@@ -7,10 +7,11 @@ export const generateRoleplayResponse = async (
   chat: Chat,
   onChunk: (chunk: string) => void
 ) => {
+  // Always initialize with process.env.API_KEY directly
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const systemInstruction = `
-You are an immersive roleplay engine for a site like Perchance. 
+You are an immersive roleplay engine.
 
 CHARACTER CONTEXT:
 Bot: ${character.name}
@@ -21,20 +22,17 @@ User Description: ${character.userDescription}
 SCENARIO & LORE:
 ${character.scenarioPrompt}
 
-WRITING STYLE INSTRUCTIONS:
-${chat.writingInstructions || "Stay in character. Be descriptive. Use *asterisks* for actions."}
-${chat.longResponses ? "Provide very long, detailed, and multi-paragraph responses." : "Keep responses focused and concise."}
-
-GOAL FOR NEXT MESSAGE:
-${chat.nextEventPrompt || "Continue the story naturally."}
+WRITING STYLE:
+${chat.writingInstructions || "Immersive, descriptive, stay in character."}
+${chat.longResponses ? "Write long, multi-paragraph responses." : "Keep responses concise and snappy."}
 
 CORE RULES:
-1. Never speak as the User.
-2. Always stay in character as ${character.name}.
-3. The Chat Log provided in the conversation is the full history. 
-4. Do not include character names in the response unless starting a new line in a script format.
+- Never speak for the user.
+- Use *asterisks* for actions/physical descriptions.
+- Stay strictly in character as ${character.name}.
 `;
 
+  // Convert messages to Gemini format
   const chatHistory = chat.messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
     parts: [{ text: `${m.authorName ? `${m.authorName}: ` : ""}${m.content}` }]
@@ -46,26 +44,25 @@ CORE RULES:
       contents: chatHistory,
       config: {
         systemInstruction,
-        temperature: 0.9,
+        temperature: 0.8,
+        topP: 0.95,
       }
     });
 
     const text = response.text || "";
-    // Clean bot name from beginning if model added it
-    const cleaned = text.replace(new RegExp(`^${character.name}: `, 'i'), '');
-    return cleaned.trim();
+    // Remove potential name prefixing by the model
+    return text.replace(new RegExp(`^${character.name}: `, 'i'), '').trim();
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("Gemini API Error:", error);
     throw error;
   }
 };
 
 export const brainstormField = async (fieldName: string, currentContext: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const fieldLabel = fieldName === 'description' ? 'Bot Character' : (fieldName === 'userDescription' ? 'User Character' : 'Roleplay Scenario');
-  const prompt = `Brainstorm a creative and immersive ${fieldLabel} description. 
-  Current context: ${currentContext || "None"}. 
-  Return only the description text.`;
+  const prompt = `Brainstorm a creative and immersive description for a character/scenario field named "${fieldName}". 
+  Context: ${currentContext || "Start from scratch"}. 
+  Return only the generated description text.`;
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
